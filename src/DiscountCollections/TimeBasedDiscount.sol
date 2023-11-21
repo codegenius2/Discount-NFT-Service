@@ -16,7 +16,7 @@ import { CountersUpgradeable } from "@openzeppelin/contracts-upgradeable@4.9.1/u
  * @dev This contract is an ERC1155-based discount service that sits on top of a discount manager.
  * It enables users to difine a discount, where the token ID represents the discount percentage for each minted item.
  * The configured tokens can be utilized during a fixed time frame, after the discount will expire.
- * Note: this discount contract will be created for each user(project) through discount manager.
+ * Note: this discount minter contract will be created for each user(project) through discount manager.
  */
 contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable, PausableUpgradeable, ERC1155BurnableUpgradeable, ERC1155SupplyUpgradeable, UUPSUpgradeable {
     
@@ -30,7 +30,7 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
 
 
     struct Discount {
-        uint64 tokenId; 
+        bool isActive;
         uint64 ratio;
         uint64 startAt;
         uint64 endAt;
@@ -79,6 +79,7 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
         __UUPSUpgradeable_init();
         name = tokenName;
         symbol = tokenSymbol;     
+        _tokenId.increment();
     }
 
 
@@ -92,7 +93,7 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
 
         uint256 newTokenId = _tokenId.current();
         Discount memory discount = Discount(
-            uint64(newTokenId),
+            true,
             ratio,
             startAt,
             endAt
@@ -107,9 +108,34 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
     }
 
 
-    function _isDiscountExpired(uint256 tokenId) private view returns(bool isExpired) {
+    function _isExpiretionNeeded(uint256 tokenId) private view returns(bool isNeeded) {
 
-        isExpired = tokenIdToDiscount[tokenId].endAt >= block.timestamp;
+        Discount memory discount = tokenIdToDiscount[tokenId];
+        isNeeded = (discount.endAt >= block.timestamp) && (discount.isActive == true);
+    }
+
+
+    function getExpireNeededTokenIds() public view returns(uint256[] memory tokenIds) {
+
+        uint256 lastTokenId = _tokenId.current();
+        uint256 id = 1;
+        uint256 index = 0;
+
+        for(; id < lastTokenId; id++) {
+
+            if(_isExpiretionNeeded(id)) {
+                tokenIds[index] = id;
+                index = index + 1;
+            }
+        }
+
+    }
+
+
+    function getDiscountRatio(uint256 tokenId) public view returns(uint256 ratio) {
+
+        Discount memory discount = tokenIdToDiscount[tokenId];
+        ratio = discount.isActive? discount.ratio : 0;
     }
 
 
