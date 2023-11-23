@@ -23,7 +23,9 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
     using CountersUpgradeable for CountersUpgradeable.Counter;
     CountersUpgradeable.Counter private _tokenId;
 
-    
+    // the expired metadata uri
+    string expiredMetadata;
+
     // contract name and symbol
     string public name;
     string public symbol;
@@ -127,6 +129,28 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
                 tokenIds[index] = id;
                 index = index + 1;
             }
+        }
+
+    }
+
+
+    function expireDiscountByTokenId(uint256 tokenId) internal {
+
+        require(tokenIdToDiscount[tokenId].endAt >= block.timestamp);
+        tokenIdToMetadata[tokenId] = expiredMetadata;
+        tokenIdToDiscount[tokenId].isActive = false;
+    }
+
+
+    function expireDiscountByListOfTokenIds(uint256[] memory tokenIds) internal {
+
+        uint lastIndex = tokenIds.length;
+        require(lastIndex > 0, "Invalid array");
+
+        for(uint i; i < lastIndex; i++) {
+            
+            uint256 tokenId = tokenIds[i];
+            expireDiscountByTokenId(tokenId);
         }
 
     }
