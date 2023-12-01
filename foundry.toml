@@ -6,7 +6,8 @@ ffi = true
 
 remappings = [
     '@openzeppelin/contracts@4.9.1=lib/openzeppelin-contracts/contracts', 
-    '@openzeppelin/contracts-upgradeable@4.9.1=lib/openzeppelin-contracts-upgradeable/contracts'
+    '@openzeppelin/contracts-upgradeable@4.9.1=lib/openzeppelin-contracts-upgradeable/contracts',
+    '@chainlink/contracts-ccip=lib/ccip/contracts'
 ]
 
 
