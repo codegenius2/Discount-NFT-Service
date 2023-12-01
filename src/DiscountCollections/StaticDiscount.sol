@@ -48,8 +48,24 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param tokenId The ID of the token for which to set the URI.
      * @param newuri The URI to set for the token.
      */    
-    function setURI(uint256 tokenId, string calldata newuri) public onlyOwner {
+    function _setURI(uint256 tokenId, string calldata newuri) private {
         tokenIdToMetadata[tokenId] = newuri;
+    }
+
+
+    /**
+     * @dev Sets the URI for a list of token IDs, allowing the association of metadata with each token.
+     * @param tokenIds The ID of the token for which to set the URI.
+     * @param uris The URI to set for the token.
+     */   
+    function setBatchURI(uint256[] calldata tokenIds, string[] calldata uris) public onlyOwner {
+
+        require(tokenIds.length == uris.length, "Invalid arrays length");
+
+        uint256 length = tokenIds.length;
+        for(uint index; index < length; index++) {
+            _setURI(tokenIds[index], uris[index]);
+        }
     }
 
 
