@@ -31,13 +31,14 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param tokenName The name of the ERC1155 tokens.
      * @param tokenSymbol The symbol of the ERC1155 tokens.
      */
-    function initialize(string calldata tokenName, string calldata tokenSymbol) initializer public {
+    function initialize(string calldata tokenName, string calldata tokenSymbol, uint256[] calldata tokenIds, string[] calldata uris) initializer public {
         __ERC1155_init(name);
         __Ownable_init();
         __Pausable_init();
         __ERC1155Burnable_init();
         __ERC1155Supply_init();
         __UUPSUpgradeable_init();
+        setBatchURI(tokenIds, uris);
         name = tokenName;
         symbol = tokenSymbol;     
     }
