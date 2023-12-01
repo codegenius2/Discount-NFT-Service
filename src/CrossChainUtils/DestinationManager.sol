@@ -46,7 +46,7 @@ contract DestinationManager is Ownable, CCIPReceiver {
         discount.initialize(tokenName, tokenSymbol);
 
         // emit the name and the address of the discount contract
-        emit StaticDiscountCreated(tokenName, address(discount));
+        emit TimeBasedDiscountCreated(tokenName, address(discount));
 
     }
 
