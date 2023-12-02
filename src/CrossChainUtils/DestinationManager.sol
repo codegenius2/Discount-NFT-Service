@@ -9,7 +9,7 @@ import {IStaticDiscount} from "../interfaces/IStaticDiscount.sol";
 import {ITimeBasedDiscount} from "../interfaces/ITimeBasedDiscount.sol";
 
 
-contract DestinationManager is Ownable, CCIPReceiver {
+contract DestinationDeployer is Ownable, CCIPReceiver {
 
     address _staticDiscountImp;
     address _timeBasedDiscountImp;
