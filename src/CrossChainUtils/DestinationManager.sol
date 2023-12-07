@@ -21,6 +21,8 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     event StaticDiscountCreated(string name, address discount);
     event TimeBasedDiscountCreated(string name, address discount);
 
+	event Received(bytes sourceRouter, bytes32 messageId, uint64 sourceChainSelector);
+
 
     constructor(address router, address staticDiscount, address timeBasedDiscount) CCIPReceiver(router) {
         _staticDiscountImp = staticDiscount;
@@ -28,7 +30,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function createStaticDiscount(string calldata tokenName, string calldata tokenSymbol, uint256[] calldata tokenIds, string[] calldata uris) private onlyOwner {
+    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris) public {
 
         // Create a static discount for a collection and setting up tokens metadata
         ERC1967Proxy discountProxy = new ERC1967Proxy(address(_staticDiscountImp), "");
@@ -47,7 +49,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function createTimeBasedDiscount(string calldata tokenName, string calldata tokenSymbol) private onlyOwner {
+    function createTimeBasedDiscount(string calldata tokenName, string calldata tokenSymbol) public {
 
         // Create a time based discount for a collection 
         ERC1967Proxy discountProxy = new ERC1967Proxy(address(_staticDiscountImp), "");
@@ -66,7 +68,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function mintStaticDiscount(string calldata tokenName, address to, uint256 tokenId, uint256 amount) private onlyOwner {
+    function mintStaticDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) public {
 
         // convert string name to bytes
         bytes32 name = getBytesString(tokenName);
@@ -79,7 +81,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function mintTimeBasedDiscount(string calldata tokenName, address to, uint256 tokenId, uint256 amount) private onlyOwner {
+    function mintTimeBasedDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) public {
 
         // convert string name to bytes
         bytes32 name = getBytesString(tokenName);
@@ -94,7 +96,8 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
 
     function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
         (bool success, ) = address(this).call(message.data);
-        require(success);        
+        //require(success);       
+        emit Received(message.sender, message.messageId, message.sourceChainSelector);
     }
 
 
