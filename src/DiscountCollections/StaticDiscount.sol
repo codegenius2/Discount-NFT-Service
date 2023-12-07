@@ -31,14 +31,14 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param tokenName The name of the ERC1155 tokens.
      * @param tokenSymbol The symbol of the ERC1155 tokens.
      */
-    function initialize(string calldata tokenName, string calldata tokenSymbol, uint256[] calldata tokenIds, string[] calldata uris) initializer public {
+    function initialize(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris) initializer public {
         __ERC1155_init(name);
         __Ownable_init();
         __Pausable_init();
         __ERC1155Burnable_init();
         __ERC1155Supply_init();
         __UUPSUpgradeable_init();
-        setBatchURI(tokenIds, uris);
+        batchSetURI(tokenIds, uris);
         name = tokenName;
         symbol = tokenSymbol;     
     }
@@ -49,7 +49,7 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param tokenId The ID of the token for which to set the URI.
      * @param newuri The URI to set for the token.
      */    
-    function _setURI(uint256 tokenId, string calldata newuri) private {
+    function _setURI(uint256 tokenId, string memory newuri) private {
         tokenIdToMetadata[tokenId] = newuri;
     }
 
@@ -59,7 +59,7 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param tokenIds The ID of the token for which to set the URI.
      * @param uris The URI to set for the token.
      */   
-    function setBatchURI(uint256[] calldata tokenIds, string[] calldata uris) public onlyOwner {
+    function batchSetURI(uint256[] memory tokenIds, string[] memory uris) public onlyOwner {
 
         require(tokenIds.length == uris.length, "Invalid arrays length");
 
@@ -87,7 +87,7 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param amount The number of tokens to mint.
      * @param data Additional data to include with the mint.
      */
-    function mint(address account, uint256 id, uint256 amount, bytes calldata data)
+    function mint(address account, uint256 id, uint256 amount, bytes memory data)
         public onlyOwner
     {
         _mint(account, id, amount, data);
@@ -101,7 +101,7 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param amounts An array of corresponding token amounts to mint.
      * @param data Additional data to include with the mint.
      */
-    function mintBatch(address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data)
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
         public onlyOwner
     {
         _mintBatch(to, ids, amounts, data);

@@ -7,12 +7,12 @@ interface IStaticDiscount {
     
     function unpause() external;
 
-    function initialize(string calldata tokenName, string calldata tokenSymbol, uint256[] calldata tokenIds, string[] calldata uris) external;
+    function initialize(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris) external;
 
-    function setBatchURI(uint256[] calldata tokenIds, string[] calldata uris) external;
+    function setBatchURI(uint256[] memory tokenIds, string[] memory uris) external;
 
-    function mint(address account, uint256 id, uint256 amount, bytes calldata data) external;
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) external;
 
-    function mintBatch(address to, uint256[] calldata ids, uint256[] calldata amounts, bytes calldata data) external;
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) external;
    
 }
