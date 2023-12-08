@@ -19,7 +19,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
     mapping(bytes32 => Discount) public nameToDiscount;
-    mapping(bytes32 => uint256[]) internal discountChainIds;
+    mapping(bytes32 => uint256[]) public discountChainIds;
 
     mapping(bytes32 => mapping(address => uint256)) public discountToClaimBalance;
 
@@ -50,38 +50,39 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
-    // function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris, uint256 chainId) public payable {
+    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris, uint256 chainId) public payable {
 
-    //     require(bytes(tokenName).length <= 32, "Token name is too long");
-    //     bytes32 name = getBytesString(tokenName);
+        bytes32 name = getBytesString(tokenName);
+        Discount memory discount = nameToDiscount[name];
 
-    //     //Discount storage discount = nameToDiscount[name];
+        require(
+            discount.owner == msg.sender, "Caller is not token owner"
+        );
 
-
-    //     // if(discount.discountType == Types.Inactive) {
-    //     //     discount.owner = msg.sender;
-    //     //     discount.discountType = Types
-    //     // }
+        require(
+            discount.discountType == Types.StaticBased,
+            "Invalid discount type. Expected Types.StaticBased"
+        );
 
         
+        bytes memory data = abi.encodeWithSignature(
+            "createStaticDiscount(string,string,uint256[],string[])", 
+            tokenName, tokenSymbol, tokenIds, uris
+        );
 
-    //     bytes memory data = abi.encodeWithSignature(
-    //         "createStaticDiscount(string,string,uint256[],string[])", 
-    //         tokenName, tokenSymbol, tokenIds, uris
-    //     );
+        // create ccip message to send the receive contract
+        Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
 
-    //     // create ccip message to send the receive contract
-    //     Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
+        // check the caller send enogh msg value for ccip
+        uint256 fee = _getCCIPMessageFee(message, chainId);
+        require(msg.value >= fee, "Insufficient value");
 
-    //     // check the caller send enogh msg value for ccip
-    //     uint256 fee = _getCCIPMessageFee(message, chainId);
-    //     require(msg.value >= fee, "Insufficient value");
+        // send the message and create the discount
+        _sendCCIPMessage(message, chainId);
 
-    //     // send the message and create the discount
-    //     _sendCCIPMessage(message, chainId);
+        discountChainIds[name].push(chainId);
     
-    // }
-
+    }
 
 
 
