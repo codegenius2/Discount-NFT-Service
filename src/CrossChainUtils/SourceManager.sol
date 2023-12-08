@@ -103,8 +103,8 @@ contract SourceManager is Initializable, OwnableUpgradeable {
      * @param message The CCIP message to be sent.
      * @param chainId The chain ID to which the message should be sent.
      */
-    function sendCCIPMessage(Client.EVM2AnyMessage memory message, uint256 chainId) internal {
-
+    function _sendCCIPMessage(Client.EVM2AnyMessage memory message, uint256 chainId) internal {
+                
         // get the fee ccip message based on destination chain
         uint256 fee = _getCCIPMessageFee(message, chainId);
 
