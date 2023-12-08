@@ -9,8 +9,13 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable@4.9.1/ac
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable@4.9.1/security/PausableUpgradeable.sol";
 import { SourceManager } from "./CrossChainUtils/SourceManager.sol";
 
+/**
+ * @title DiscountManager
+ * @dev Manages various types of discounts and balances, including time-based and static-based discounts, with Chainlink CCIP integration.
+ */
 contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable, SourceManager {
 
+    // Enumeration for types of discounts
     enum Types { Inactive, TimeBased, StaticBased }
 
     struct Discount {
@@ -18,13 +23,23 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
         Types discountType; 
     }
 
+    // Mapping from discount name to Discount struct
     mapping(bytes32 => Discount) public nameToDiscount;
+ 
+    // Mapping from discount name to an array of chain IDs supported for the token
     mapping(bytes32 => uint256[]) public discountChainIds;
 
+    // Mapping from discount name to a mapping of addresses and their corresponding claim balances
     mapping(bytes32 => mapping(address => uint256)) public discountToClaimBalance;
+
 
     event DiscountInitialized(address owner, string discountName, Types discountType);
 
+
+    /**
+     * @dev Initializes the DiscountManager and sourceManager contract.
+     * @param _ccipRouter The address of the Chainlink CCIP Router contract.
+     */
     function initialize(address _ccipRouter) initializer public {
         __Ownable_init();
         __Pausable_init();
@@ -33,12 +48,17 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @dev Initializes a discount with the specified name and type.
+     * @param tokenName The name of the discount token.
+     * @param tokenType The type of the discount (TimeBased or StaticBased).
+     */
     function initializeDiscount(string calldata tokenName, Types tokenType) public {
 
         require(uint8(tokenType) == 1 || uint8(tokenType) == 2, "Invalid token type");
 
         require(bytes(tokenName).length <= 32, "Token name is too long");
-        bytes32 name = getBytesString(tokenName);
+        bytes32 name = _getBytesString(tokenName);
 
         Discount storage discount = nameToDiscount[name];
         require(discount.discountType == Types.Inactive, "Token already initialized");
@@ -50,19 +70,21 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @dev Creates a static-based discount with the specified parameters.
+     * @param tokenName The name of the discount token.
+     * @param tokenSymbol The symbol of the discount token.
+     * @param tokenIds An array of token IDs associated with the discount.
+     * @param uris An array of URIs associated with the discount.
+     * @param chainId The Chain ID where the discount is created.
+     */
     function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris, uint256 chainId) public payable {
 
-        bytes32 name = getBytesString(tokenName);
+        bytes32 name = _getBytesString(tokenName);
         Discount memory discount = nameToDiscount[name];
 
-        require(
-            discount.owner == msg.sender, "Caller is not token owner"
-        );
-
-        require(
-            discount.discountType == Types.StaticBased,
-            "Invalid discount type. Expected Types.StaticBased"
-        );
+        require(discount.owner == msg.sender, "Caller is not token owner");
+        require(discount.discountType == Types.StaticBased, "Invalid discount type. Expected Types.StaticBased");
 
         
         bytes memory data = abi.encodeWithSignature(
@@ -85,8 +107,15 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
-
-
+    /**
+     * @dev Calculates the fee required to create a static-based discount with the specified parameters.
+     * @param tokenName The name of the discount token.
+     * @param tokenSymbol The symbol of the discount token.
+     * @param tokenIds An array of token IDs associated with the discount.
+     * @param uris An array of URIs associated with the discount.
+     * @param chainId The Chain ID where the discount is created.
+     * @return fee The fee required to send the Chainlink CCIP message and create the discount.
+     */
     function getCreateStaticDiscountFee(
         string calldata tokenName, string calldata tokenSymbol, 
         uint256[] calldata tokenIds, string[] calldata uris, uint256 chainId) public view returns(uint256 fee) {
@@ -110,7 +139,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @param name The input string to be converted.
      * @return _name The resulting bytes32 value.
      */
-    function getBytesString(string memory name) private pure returns(bytes32 _name) {
+    function _getBytesString(string memory name) private pure returns(bytes32 _name) {
         assembly {
             _name := mload(add(name, 32))
         }
