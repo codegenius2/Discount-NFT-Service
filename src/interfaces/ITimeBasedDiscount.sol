@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 
 interface ITimeBasedDiscount {
 
-    function initialize(string memory tokenName, string memory tokenSymbol) external;
+    function initialize(string memory tokenName, string memory tokenSymbol, string memory _expireMetadata) external;
 
     function mint(address account, uint256 id, uint256 amount, bytes memory data) external;
 
