@@ -138,19 +138,31 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @notice Batch increments claim balances for multiple users associated with a specific discount.
+     * @dev This function allows the owner of a discount to increment the claim balances for multiple users,
+     * making them eligible for claiming the discount later.
+     * @param tokenName The name of the discount token.
+     * @param discountId The id for the discount.
+     * @param addresses An array of user addresses whose claim balances will be incremented.
+     * @dev The caller must be the owner of the discount, and the discount must be active (not Inactive).
+     * @dev For each address in the provided array, the claim balance for the specified discount is increased by 1.
+     * @dev Emits an event to signal the successful increment of claim balances for the specified users.
+     */
     function batchIncrementUsersBalances(string calldata tokenName, uint256 discountId, address[] calldata addresses) public {
 
         bytes32 name = _getBytesString(tokenName);
 
         Discount memory discount = nameToDiscount[name];
 
+        // Check ownership and discount activity status
         require(discount.owner == msg.sender, "Caller is not token owner");
         require(discount.discountType != Types.Inactive, "Discount is not active");
 
         uint256 length = addresses.length;
 
+        // Iterate through the provided addresses and increment claim balances
         for(uint256 index; index < length; index++) {
-
             address user = addresses[index];
             discountToClaimBalance[name][user][discountId] += 1;
         }
@@ -159,6 +171,17 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @notice returns the fee required to claim a static-based discount for a specific user.
+     * @dev This function computes the Chainlink CCIP message fee needed to claim a static-based discount
+     * with the specified parameters for the calling user.
+     * @param tokenName The name of the discount token.
+     * @param discountId The unique identifier for the discount.
+     * @param chainId The Chain ID where the discount wants to create and receive.
+     * @return fee The fee required to send the Chainlink CCIP message and claim the discount.
+     * @dev It generates a CCIP message with the 'mintStaticDiscount' function signature,
+     * calculates the message fee, and returns the result.
+     */
     function getClaimStaticDiscountFee(string memory tokenName, uint256 discountId, uint256 chainId) public view returns(uint256 fee) {
         
         bytes memory data = abi.encodeWithSignature(
@@ -175,11 +198,27 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @notice Claims a static-based discount for the calling user on a specific Chain ID.
+     * @dev This function allows users to claim a static-based discount associated with their address
+     * on the specified Chain ID by sending a Chainlink CCIP message.
+     * @param tokenName The name of the discount token.
+     * @param discountId The unique identifier for the discount.
+     * @param chainId The Chain ID where the discount wants to create and receive.
+     * @dev The discount must be supported on the given Chain ID, and the discount type must be Types.StaticBased.
+     * @dev The user must have a positive claim balance for the specified discount to be eligible to claim.
+     * @dev The function emits a DiscountClaimed event upon successful claim.
+     */
     function claimStaticDiscount(string memory tokenName, uint256 discountId, uint256 chainId) public payable {
 
         bytes32 name = _getBytesString(tokenName);
-        Discount memory discount = nameToDiscount[name];
         
+        // Check if the discount is supported on the given Chain ID
+        require(discountChainIds[name][chainId] == true, "Chain not supported");
+        
+        // Retrieve discount information
+        Discount memory discount = nameToDiscount[name];        
+
         require(discount.discountType == Types.StaticBased, "Discount is not static based");
         require(discountToClaimBalance[name][msg.sender][discountId] > 0, "Caller is not eligible to claim");
 
@@ -193,7 +232,11 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
 
         uint256 ccipFee = _getCCIPMessageFee(message, chainId);
         require(msg.value >= ccipFee, "Insufficient message value");
+        
+        // decrement user token balance
+        discountToClaimBalance[name][msg.sender][discountId] -= 1;
 
+        // Send the CCIP message to mint on destination and emit the DiscountClaimed event
         _sendCCIPMessage(message, chainId);
         emit DiscountClaimed(tokenName, discountId, chainId, Types.StaticBased);
     }
