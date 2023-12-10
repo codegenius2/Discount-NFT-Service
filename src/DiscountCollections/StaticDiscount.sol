@@ -95,6 +95,18 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
         _mint(account, id, amount, data);
         emit DiscountMinted(account, address(this), id);
     }
+
+
+    /**
+     * @dev burn a single discount for a specified account.
+     * @param account The address of discount owner.
+     * @param id The token ID to be burned.
+     * @param value The number of tokens to burn.
+     */
+    function burn(address account, uint256 id, uint256 value) public override {
+        super.burn(account, id, value);
+        emit DiscountBurned(account, address(this), id);
+    }
     
 
     /**
