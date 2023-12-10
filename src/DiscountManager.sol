@@ -26,14 +26,18 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     // Mapping from discount name to Discount struct
     mapping(bytes32 => Discount) public nameToDiscount;
  
-    // Mapping from discount name to an array of chain IDs supported for the token
-    mapping(bytes32 => uint256[]) public discountChainIds;
+    // Mapping from discount name to chain IDs supported for the token
+    mapping(bytes32 => mapping(uint256 => bool)) public discountChainIds;
 
     // Mapping from discount name to a mapping of addresses and their corresponding claim balances
-    mapping(bytes32 => mapping(address => uint256)) public discountToClaimBalance;
+    // discount name => userAddress => discountId => claim balance
+    mapping(bytes32 => mapping(address => mapping(uint256 => uint256))) public discountToClaimBalance;
 
 
     event DiscountInitialized(address owner, string discountName, Types discountType);
+    event DiscountCreated(string discountName, Types discountType, uint256 chainId);
+    event DiscountClaimed(string discountName, uint256 discountId, uint256 chainId, Types discountType);
+    event UsersBalancesIncremented(string discountName, address[] users);
 
 
     /**
@@ -102,7 +106,8 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
         // send the message and create the discount
         _sendCCIPMessage(message, chainId);
 
-        discountChainIds[name].push(chainId);
+        discountChainIds[name][chainId] = true;
+        emit DiscountCreated(tokenName, Types.StaticBased, chainId);
     
     }
 
@@ -132,6 +137,66 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
         fee = _getCCIPMessageFee(message, chainId);
     }
 
+
+    function batchIncrementUsersBalances(string calldata tokenName, uint256 discountId, address[] calldata addresses) public {
+
+        bytes32 name = _getBytesString(tokenName);
+
+        Discount memory discount = nameToDiscount[name];
+
+        require(discount.owner == msg.sender, "Caller is not token owner");
+        require(discount.discountType != Types.Inactive, "Discount is not active");
+
+        uint256 length = addresses.length;
+
+        for(uint256 index; index < length; index++) {
+
+            address user = addresses[index];
+            discountToClaimBalance[name][user][discountId] += 1;
+        }
+
+        emit UsersBalancesIncremented(tokenName, addresses);
+    }
+
+
+    function getClaimStaticDiscountFee(string memory tokenName, uint256 discountId, uint256 chainId) public view returns(uint256 fee) {
+        
+        bytes memory data = abi.encodeWithSignature(
+            "mintStaticDiscount(string,address,uint256,uint256)", 
+            tokenName, msg.sender, discountId, 1
+        );
+
+        // create ccip message to send the receive contract
+        Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
+
+        // returns the fee for sending the ccip message
+        fee = _getCCIPMessageFee(message, chainId);
+
+    }
+
+
+    function claimStaticDiscount(string memory tokenName, uint256 discountId, uint256 chainId) public payable {
+
+        bytes32 name = _getBytesString(tokenName);
+        Discount memory discount = nameToDiscount[name];
+        
+        require(discount.discountType == Types.StaticBased, "Discount is not static based");
+        require(discountToClaimBalance[name][msg.sender][discountId] > 0, "Caller is not eligible to claim");
+
+        bytes memory data = abi.encodeWithSignature(
+            "mintStaticDiscount(string,address,uint256,uint256)", 
+            tokenName, msg.sender, discountId, 1
+        );
+
+        // create ccip message to send the receive contract
+        Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
+
+        uint256 ccipFee = _getCCIPMessageFee(message, chainId);
+        require(msg.value >= ccipFee, "Insufficient message value");
+
+        _sendCCIPMessage(message, chainId);
+        emit DiscountClaimed(tokenName, discountId, chainId, Types.StaticBased);
+    }
 
 
     /**
