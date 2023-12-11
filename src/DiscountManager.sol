@@ -57,7 +57,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @param tokenName The name of the discount token.
      * @param tokenType The type of the discount (TimeBased or StaticBased).
      */
-    function initializeDiscount(string calldata tokenName, Types tokenType) public {
+    function initializeDiscount(string calldata tokenName, Types tokenType) external {
 
         require(uint8(tokenType) == 1 || uint8(tokenType) == 2, "Invalid token type");
 
@@ -82,7 +82,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @param uris An array of URIs associated with the discount.
      * @param chainId The Chain ID where the discount is created.
      */
-    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris, uint256 chainId) public payable {
+    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris, uint256 chainId) external payable {
 
         bytes32 name = _getBytesString(tokenName);
         Discount memory discount = nameToDiscount[name];
@@ -123,7 +123,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      */
     function getCreateStaticDiscountFee(
         string calldata tokenName, string calldata tokenSymbol, 
-        uint256[] calldata tokenIds, string[] calldata uris, uint256 chainId) public view returns(uint256 fee) {
+        uint256[] calldata tokenIds, string[] calldata uris, uint256 chainId) external view returns(uint256 fee) {
         
         bytes memory data = abi.encodeWithSignature(
             "createStaticDiscount(string,string,uint256[],string[])", 
@@ -149,7 +149,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @dev For each address in the provided array, the claim balance for the specified discount is increased by 1.
      * @dev Emits an event to signal the successful increment of claim balances for the specified users.
      */
-    function batchIncrementUsersBalances(string calldata tokenName, uint256 discountId, address[] calldata addresses) public {
+    function batchIncrementUsersBalances(string calldata tokenName, uint256 discountId, address[] calldata addresses) external {
 
         bytes32 name = _getBytesString(tokenName);
 
@@ -182,7 +182,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @dev It generates a CCIP message with the 'mintStaticDiscount' function signature,
      * calculates the message fee, and returns the result.
      */
-    function getClaimStaticDiscountFee(string memory tokenName, uint256 discountId, uint256 chainId) public view returns(uint256 fee) {
+    function getClaimStaticDiscountFee(string memory tokenName, uint256 discountId, uint256 chainId) external view returns(uint256 fee) {
         
         bytes memory data = abi.encodeWithSignature(
             "mintStaticDiscount(string,address,uint256,uint256)", 
@@ -209,7 +209,7 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
      * @dev The user must have a positive claim balance for the specified discount to be eligible to claim.
      * @dev The function emits a DiscountClaimed event upon successful claim.
      */
-    function claimStaticDiscount(string memory tokenName, uint256 discountId, uint256 chainId) public payable {
+    function claimStaticDiscount(string memory tokenName, uint256 discountId, uint256 chainId) external payable {
 
         bytes32 name = _getBytesString(tokenName);
         
@@ -241,6 +241,50 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
         emit DiscountClaimed(tokenName, discountId, chainId, Types.StaticBased);
     }
 
+
+
+    /**
+     * @notice Creates a time-based discount contract with the specified parameters.
+     * @dev This function allows the owner of a discount to create a time-based discount contract on a specific Chain ID
+     * by sending a Chainlink CCIP message with the provided token information and expiration metadata.
+     * @param tokenName The name of the discount token.
+     * @param tokenSymbol The symbol of the discount token.
+     * @param expireMetadata Metadata indicating the expiration details of the time-based discount.
+     * @param chainId The Chain ID where the discount is created.
+     * @dev The caller must be the owner of the discount, and the discount type must be Types.TimeBased.
+     * @dev Emits a DiscountCreated event upon successful creation.
+     */
+    function createTimeBasedDiscount(string memory tokenName, string memory tokenSymbol, string memory expireMetadata, uint256 chainId) external payable {
+
+        bytes32 name = _getBytesString(tokenName);
+        Discount memory discount = nameToDiscount[name];
+
+        require(discount.owner == msg.sender, "Caller is not token owner");
+        require(discount.discountType == Types.TimeBased, "Invalid discount type. Expected Types.TimeBased");
+
+    
+        bytes memory data = abi.encodeWithSignature(
+            "createTimeBasedDiscount(string,string,string)", 
+            tokenName, tokenSymbol, expireMetadata
+        );
+
+        // create ccip message to send the receive contract
+        Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
+
+        // returns the fee for sending the ccip message
+        uint256 fee = _getCCIPMessageFee(message, chainId);
+        require(msg.value >= fee, "Insufficient message value");
+
+        // send the message and create the discount
+        _sendCCIPMessage(message, chainId);
+
+        discountChainIds[name][chainId] = true;
+        emit DiscountCreated(tokenName, Types.TimeBased, chainId);
+    
+    }
+
+
+    
 
     /**
      * @notice Convert a string into a bytes32 value.
