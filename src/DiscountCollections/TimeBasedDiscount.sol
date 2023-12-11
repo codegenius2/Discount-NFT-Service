@@ -72,21 +72,22 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
      * @param tokenName The name of the ERC1155 tokens.
      * @param tokenSymbol The symbol of the ERC1155 tokens.
      */
-    function initialize(string calldata tokenName, string calldata tokenSymbol) initializer public {
+    function initialize(string memory tokenName, string memory tokenSymbol, string memory _expireMetadata) initializer public {
         __ERC1155_init(name);
         __Ownable_init();
         __Pausable_init();
         __ERC1155Burnable_init();
         __ERC1155Supply_init();
         __UUPSUpgradeable_init();
+        _tokenId.increment();
         name = tokenName;
         symbol = tokenSymbol;     
-        _tokenId.increment();
+        expiredMetadata = _expireMetadata;
     }
 
 
        
-    function createToken(string calldata newUri, uint64 startAt, uint64 endAt, uint64 ratio) public onlyOwner {
+    function createToken(string memory newUri, uint64 startAt, uint64 endAt, uint64 ratio) public onlyOwner {
         
         require(ratio > 0 && ratio <= 100, "Invalid ratio");
         require(startAt >= block.timestamp, "Invalid startAt timestamp");
@@ -180,10 +181,9 @@ contract TimeBasedDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradea
      * @param amount The number of tokens to mint.
      * @param data Additional data to include with the mint.
      */
-    function mint(address account, uint256 id, uint256 amount, bytes memory data)
-        public onlyOwner
-    {
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyOwner {
         _mint(account, id, amount, data);
+        emit DiscountMinted(id, amount, account);
     }
     
 

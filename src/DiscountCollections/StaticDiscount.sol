@@ -25,6 +25,10 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
     mapping(uint256 => string) tokenIdToMetadata;
 
 
+    event DiscountMinted(address reciever, address discount, uint256 discountId);
+    event DiscountBurned(address owner, address discount, uint256 discountId);
+
+
     /**
      * @dev Initializes the DiscountService contract, setting the initial owner as the Minter Role,
      * and specifying the discount name, and symbol.
@@ -87,10 +91,21 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param amount The number of tokens to mint.
      * @param data Additional data to include with the mint.
      */
-    function mint(address account, uint256 id, uint256 amount, bytes memory data)
-        public onlyOwner
-    {
+    function mint(address account, uint256 id, uint256 amount, bytes memory data) public onlyOwner {
         _mint(account, id, amount, data);
+        emit DiscountMinted(account, address(this), id);
+    }
+
+
+    /**
+     * @dev burn a single discount for a specified account.
+     * @param account The address of discount owner.
+     * @param id The token ID to be burned.
+     * @param value The number of tokens to burn.
+     */
+    function burn(address account, uint256 id, uint256 value) public override {
+        super.burn(account, id, value);
+        emit DiscountBurned(account, address(this), id);
     }
     
 
@@ -101,9 +116,7 @@ contract StaticDiscount is Initializable, ERC1155Upgradeable, OwnableUpgradeable
      * @param amounts An array of corresponding token amounts to mint.
      * @param data Additional data to include with the mint.
      */
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
-        public onlyOwner
-    {
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data) public onlyOwner {
         _mintBatch(to, ids, amounts, data);
     }
 
