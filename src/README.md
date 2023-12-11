@@ -30,7 +30,7 @@ The **Smart Contracts** module serves as the system's backbone, responsible for 
 
 The **OpenZeppelin Upgradeable Contracts** module enhances the system's security and flexibility. It utilizes the UUPS pattern, enabling seamless upgrades without disrupting the system's functionality.
 
-<br ><br />
+
 ### 3. Chainlink Integration
 
 The **Chainlink Integration** module ensures seamless off-chain data communication and cross-chain interoperability through Chainlink's CCIP.
@@ -43,17 +43,22 @@ The **Chainlink Integration** module ensures seamless off-chain data communicati
 
 - **getCCIPMessageFee:** Calculates the fee required for sending a CCIP message. This function determines the cost associated with cross-chain communication.
 
-<br ><br />
+
 ### 4. UUPS Pattern
 
 The **UUPS Pattern** module facilitates the creation and management of new discounts, enhancing the system's upgradability and flexibility.
 
-<br ><br />
+
 ### 5. ERC1155 NFTs
 
 The **ERC1155 NFTs** module represents each discount as a unique and tradeable token, adding a dynamic layer to the discount ecosystem. Users can own and interact with their discounts as NFTs.
 
-<br ><br />
+
 ### 6. Automated Expiration with Chainlink
 
 The **Automated Expiration with Chainlink** module manages the automatic expiration of discounts using Chainlink automation.
+<br ><br />
+
+## Example Usage
+<img src="https://github.com/Sajad-Salehi/Discount-NFT-Service/blob/develop/docs/example.jpg" width="950" >
+
