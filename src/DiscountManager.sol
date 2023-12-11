@@ -198,6 +198,9 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    
+
+
     /**
      * @notice Claims a static-based discount for the calling user on a specific Chain ID.
      * @dev This function allows users to claim a static-based discount associated with their address
@@ -284,6 +287,28 @@ contract DiscountManager is Initializable, OwnableUpgradeable, PausableUpgradeab
     }
 
 
+    /**
+     * @dev Returns the fee required to create a time-based discount contract with the specified parameters.
+     * @param tokenName The name of the discount contract token.
+     * @param tokenSymbol The symbol of the discount token.
+     * @param expireMetadata an string of the expired imaged for discounts.
+     * @param chainId The Chain ID where the discount is created.
+     * @return fee The fee required to send the Chainlink CCIP message and create the discount contract.
+     */
+    function getCreateTimeBasedDiscountFee(
+        string memory tokenName, string memory tokenSymbol, string memory expireMetadata, uint256 chainId) external view returns(uint256 fee) {
+        
+        bytes memory data = abi.encodeWithSignature(
+            "createTimeBasedDiscount(string,string,string)", 
+            tokenName, tokenSymbol, expireMetadata
+        );
+
+        // create ccip message to send the receive contract
+        Client.EVM2AnyMessage memory message = _buildCCIPMessage(data, chainId);
+
+        // returns the fee for sending the ccip message
+        fee = _getCCIPMessageFee(message, chainId);
+    }
     
 
     /**
