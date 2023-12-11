@@ -30,7 +30,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris) public {
+    function createStaticDiscount(string memory tokenName, string memory tokenSymbol, uint256[] memory tokenIds, string[] memory uris) private {
 
         // Create a static discount for a collection and setting up tokens metadata
         ERC1967Proxy discountProxy = new ERC1967Proxy(address(_staticDiscountImp), "");
@@ -49,12 +49,12 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function createTimeBasedDiscount(string calldata tokenName, string calldata tokenSymbol) public {
+    function createTimeBasedDiscount(string memory tokenName, string memory tokenSymbol, string memory expireMetadata) private {
 
         // Create a time based discount for a collection 
         ERC1967Proxy discountProxy = new ERC1967Proxy(address(_staticDiscountImp), "");
         ITimeBasedDiscount discount = ITimeBasedDiscount(address(discountProxy));
-        discount.initialize(tokenName, tokenSymbol);
+        discount.initialize(tokenName, tokenSymbol, expireMetadata);
 
         // convert string name to bytes
         bytes32 name = getBytesString(tokenName);
@@ -68,7 +68,19 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function mintStaticDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) public {
+    function defineTimeBasedDiscount(string memory tokenName, string memory newUri, uint64 startAt, uint64 endAt, uint64 ratio) private {
+
+        // convert string name to bytes
+        bytes32 name = getBytesString(tokenName);
+        address discountAddress = staticDiscountAddresses[name];
+
+        require(discountAddress != address(0), "Discount not exists");
+
+        ITimeBasedDiscount(discountAddress).createToken(newUri, startAt, endAt, ratio);
+    }
+
+
+    function mintStaticDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) private {
 
         // convert string name to bytes
         bytes32 name = getBytesString(tokenName);
@@ -81,7 +93,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
     }
 
 
-    function mintTimeBasedDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) public {
+    function mintTimeBasedDiscount(string memory tokenName, address to, uint256 tokenId, uint256 amount) private {
 
         // convert string name to bytes
         bytes32 name = getBytesString(tokenName);
@@ -106,7 +118,7 @@ contract DestinationDeployer is Ownable, CCIPReceiver {
      * @param name The input string to be converted.
      * @return _name The resulting bytes32 value.
      */
-    function getBytesString(string memory name) internal pure returns(bytes32 _name) {
+    function getBytesString(string memory name) private pure returns(bytes32 _name) {
         assembly {
             _name := mload(add(name, 32))
         }
